@@ -1,611 +1,215 @@
 import assert from "node:assert/strict";
-import { describe, it } from "vitest";
-import * as i18niso from "../src/entry-node";
+import { beforeAll, describe, it } from "vitest";
+import en from "../locales/en.json";
+import zhHans from "../locales/zh-Hans.json";
+import zhHant from "../locales/zh-Hant.json";
+import * as countries from "../src/index";
 
-describe("i18n for iso 3166-1", function () {
-  "use strict";
-  describe("Alpha-2 to Alpha-2 code", function () {
-    it("toAlpha2 SG => SG", function () {
-      assert.strictEqual(i18niso.toAlpha2("SG"), "SG");
-    });
+beforeAll(() => {
+  countries.registerLocale(en);
+  countries.registerLocale(zhHans);
+  countries.registerLocale(zhHant);
+});
+
+describe("ISO 3166 conversions", () => {
+  it("preserves alpha-2, alpha-3 and numeric conversions", () => {
+    assert.equal(countries.toAlpha2("SGP"), "SG");
+    assert.equal(countries.toAlpha3("sg"), "SGP");
+    assert.equal(countries.numericToAlpha2(4), "AF");
+    assert.equal(countries.numericToAlpha3("276"), "DEU");
+    assert.equal(countries.alpha2ToNumeric("SE"), "752");
+    assert.equal(countries.alpha3ToNumeric("SWE"), "752");
   });
-  describe("Alpha-2 to Alpha-3 code", function () {
-    it("toAlpha3 true => undefined", function () {
-      assert.strictEqual(i18niso.toAlpha3(true), undefined);
-    });
-    it("toAlpha3 XX => undefined", function () {
-      assert.strictEqual(i18niso.toAlpha3("XX"), undefined);
-    });
-    it("toAlpha3 SG => SGP", function () {
-      assert.strictEqual(i18niso.toAlpha3("SG"), "SGP");
-    });
-    it("alpha2ToAlpha3 SG => SGP", function () {
-      assert.strictEqual(i18niso.alpha2ToAlpha3("SG"), "SGP");
-    });
+
+  it("keeps ISO validation strict", () => {
+    assert.equal(countries.isValid("SG"), true);
+    assert.equal(countries.isValid("SGP"), true);
+    assert.equal(countries.isValid(702), true);
+    assert.equal(countries.isValid("fra"), true);
+    assert.equal(countries.isValid("AC"), false);
+    assert.equal(countries.isValid("XX"), false);
+    assert.equal(countries.isValid(undefined), false);
+    assert.equal(countries.isValid(null), false);
   });
-  describe("Alpha-3 to Alpha-3 code", function () {
-    it("toAlpha2 SGP => SGP", function () {
-      assert.strictEqual(i18niso.toAlpha3("SGP"), "SGP");
-    });
+
+  it("returns undefined for invalid conversions", () => {
+    assert.equal(countries.toAlpha2(true), undefined);
+    assert.equal(countries.toAlpha3("XX"), undefined);
+    assert.equal(countries.alpha3ToAlpha2("XXX"), undefined);
+    assert.equal(countries.alpha2ToAlpha3("XX"), undefined);
+    assert.equal(countries.alpha2ToNumeric("XX"), undefined);
+    assert.equal(countries.alpha3ToNumeric("XXX"), undefined);
+    assert.equal(countries.numericToAlpha2("999"), undefined);
+    assert.equal(countries.numericToAlpha3("999"), undefined);
   });
-  describe("Alpha-3 to Alpha-2 code", function () {
-    it("toAlpha2 true => undefined", function () {
-      assert.strictEqual(i18niso.toAlpha2(true), undefined);
-    });
-    it("toAlpha2 XXX => undefined", function () {
-      assert.strictEqual(i18niso.toAlpha2("XXX"), undefined);
-    });
-    it("toAlpha2 DEU => DE", function () {
-      assert.strictEqual(i18niso.toAlpha2("DEU"), "DE");
-    });
-    it("alpha3ToAlpha2 DEU => DE", function () {
-      assert.strictEqual(i18niso.alpha3ToAlpha2("DEU"), "DE");
-    });
+
+  it("supports every accepted conversion input shape and exposes code maps", () => {
+    assert.equal(countries.toAlpha2("ac"), "AC");
+    assert.equal(countries.toAlpha2(4), "AF");
+    assert.equal(countries.toAlpha2(false), undefined);
+    assert.equal(countries.toAlpha3("sgp"), "SGP");
+    assert.equal(countries.toAlpha3(4), "AFG");
+    assert.equal(countries.toAlpha3(false), undefined);
+    assert.equal(Object.keys(countries.getAlpha2Codes()).length, 250);
+    assert.equal(Object.keys(countries.getAlpha3Codes()).length, 250);
+    assert.equal(Object.keys(countries.getNumericCodes()).length, 250);
   });
-  describe("Alpha-3 to Numeric code", function () {
-    it("alpha3ToNumeric SWE => 752", function () {
-      assert.strictEqual(i18niso.alpha3ToNumeric("SWE"), "752");
-    });
-    it("alpha3ToNumeric DJI => 262", function () {
-      assert.strictEqual(i18niso.alpha3ToNumeric("DJI"), "262");
-    });
+});
+
+describe("CLDR territories", () => {
+  it("resolves official ISO and CLDR-only territory identifiers", () => {
+    assert.equal(countries.getName("USA", "en"), "United States");
+    assert.equal(countries.getName("004", "en"), "Afghanistan");
+    assert.equal(countries.getName(4, "en"), "Afghanistan");
+    assert.equal(countries.getName("not-a-territory", "en"), undefined);
+    assert.equal(countries.getName(null as never, "en"), undefined);
+    for (const code of ["AC", "TA", "EU", "UN", "001", "419"]) {
+      assert.notEqual(countries.getName(code, "en"), undefined, code);
+      assert.equal(countries.isValidTerritory(code), true, code);
+    }
+    assert.equal(countries.isValidTerritory("UK"), true);
+    assert.equal(countries.getName("uk", "en"), "United Kingdom");
+    assert.equal(countries.isValidTerritory("AN"), false);
+    assert.equal(countries.isValidTerritory("XX"), false);
+    assert.equal(countries.isValidTerritory(419), false);
   });
-  describe("Alpha-2 to Numeric code", function () {
-    it("alpha2ToNumeric SE => 752", function () {
-      assert.strictEqual(i18niso.alpha2ToNumeric("SE"), "752");
-    });
-    it("alpha2ToNumeric DJ => 262", function () {
-      assert.strictEqual(i18niso.alpha2ToNumeric("DJ"), "262");
-    });
+
+  it("returns full CLDR territory display-name maps", () => {
+    const names = countries.getNames("en");
+    assert.equal(names.AC, "Ascension Island");
+    assert.equal(names["001"], "world");
+    assert.equal(countries.getTerritoryCode("world", "en"), "001");
+    assert.equal(
+      countries.getTerritoryCode("missing territory", "en"),
+      undefined
+    );
+    assert.equal(countries.getAlpha2Code("United States", "en"), "US");
+    assert.equal(countries.getAlpha3Code("United States", "en"), "USA");
+    assert.equal(countries.getAlpha2Code("European Union", "en"), undefined);
   });
-  describe("Numeric to Alpha-2 code", function () {
-    it("toAlpha2 '276' => DE", function () {
-      assert.strictEqual(i18niso.toAlpha2("276"), "DE");
-    });
-    it("toAlpha2 '004' => AF", function () {
-      assert.strictEqual(i18niso.toAlpha2("004"), "AF");
-    });
-    it("toAlpha2 276 => DE", function () {
-      assert.strictEqual(i18niso.toAlpha2(276), "DE");
-    });
-    it("toAlpha2 4 => AF", function () {
-      assert.strictEqual(i18niso.toAlpha2(4), "AF");
-    });
-    it("numericToAlpha2 '276' => DE", function () {
-      assert.strictEqual(i18niso.numericToAlpha2("276"), "DE");
-    });
-    it("numericToAlpha2 '004' => AF", function () {
-      assert.strictEqual(i18niso.numericToAlpha2("004"), "AF");
-    });
-    it("numericToAlpha2 276 => DE", function () {
-      assert.strictEqual(i18niso.numericToAlpha2(276), "DE");
-    });
-    it("numericToAlpha2 4 => AF", function () {
-      assert.strictEqual(i18niso.numericToAlpha2(4), "AF");
-    });
+});
+
+describe("BCP 47 locale behavior", () => {
+  it("canonicalizes case and legacy underscore separators", () => {
+    const expected = countries.getName("CN", "zh-Hans");
+    assert.equal(countries.getName("CN", "ZH_hans_cn"), expected);
+    assert.equal(countries.getName("CN", "zh-Hans-CN"), expected);
   });
-  describe("Numeric to Alpha-3 code", function () {
-    it("toAlpha3 '276' => DEU", function () {
-      assert.strictEqual(i18niso.toAlpha3("276"), "DEU");
-    });
-    it("toAlpha3 '004' => AFG", function () {
-      assert.strictEqual(i18niso.toAlpha3("004"), "AFG");
-    });
-    it("toAlpha3 276 => DEU", function () {
-      assert.strictEqual(i18niso.toAlpha3(276), "DEU");
-    });
-    it("toAlpha3 4 => DEU", function () {
-      assert.strictEqual(i18niso.toAlpha3(4), "AFG");
-    });
-    it("numericToAlpha3 '276' => DEU", function () {
-      assert.strictEqual(i18niso.numericToAlpha3("276"), "DEU");
-    });
-    it("numericToAlpha3 '004' => AFG", function () {
-      assert.strictEqual(i18niso.numericToAlpha3("004"), "AFG");
-    });
-    it("numericToAlpha3 276 => DEU", function () {
-      assert.strictEqual(i18niso.numericToAlpha3(276), "DEU");
-    });
-    it("numericToAlpha3 4 => AFG", function () {
-      assert.strictEqual(i18niso.numericToAlpha3(4), "AFG");
-    });
+
+  it("uses parent and structural locale fallback", () => {
+    assert.equal(countries.getName("AU", "en-AU"), "Australia");
+    assert.equal(countries.getName("US", "en-u-ca-gregory"), "United States");
+    assert.equal(countries.getName("US", "en-oxendict"), "United States");
   });
-  describe("getAlpha2Codes", function () {
-    it("length", function () {
-      assert.strictEqual(Object.keys(i18niso.getAlpha2Codes()).length, 250);
+
+  it("does not cross a script boundary during fallback", () => {
+    countries.registerLocale({
+      locale: "sr-Latn",
+      territories: { RS: "Srbija (latinica)" },
     });
+    assert.equal(countries.getName("RS", "sr-Cyrl"), undefined);
   });
-  describe("getAlpha3Codes", function () {
-    it("length", function () {
-      assert.strictEqual(Object.keys(i18niso.getAlpha3Codes()).length, 250);
-    });
+
+  it("exposes importable locales and base languages", () => {
+    assert.ok(countries.getSupportedLocales().includes("zh-Hans"));
+    assert.ok(countries.getSupportedLocales().includes("pt-PT"));
+    assert.ok(countries.getSupportedLanguages().includes("zh"));
   });
-  describe("getNumericCodes", function () {
-    it("length", function () {
-      assert.strictEqual(Object.keys(i18niso.getNumericCodes()).length, 250);
-    });
+
+  it("returns no data for invalid or unregistered locales", () => {
+    assert.equal(countries.getName("US", "invalid_@"), undefined);
+    assert.deepEqual(countries.getNames("fr"), {});
   });
-  describe("getAlpha2Code", function () {
-    it("missing name", function () {
-      assert.strictEqual(i18niso.getAlpha2Code("XXX", "de"), undefined);
+});
+
+describe("locale registration compatibility", () => {
+  it("accepts the legacy countries field", () => {
+    countries.registerLocale({
+      locale: "en-x-test",
+      countries: { ZZ: "Testland" },
     });
-    it("missing lang", function () {
-      assert.strictEqual(i18niso.getAlpha2Code("Deutschland", "xx"), undefined);
-    });
+    assert.equal(countries.getName("ZZ", "en-x-test"), "Testland");
+    assert.equal(
+      countries.getName("ZZ", "en-x-test", { select: "alias" }),
+      "Testland"
+    );
+    assert.deepEqual(countries.getName("ZZ", "en-x-test", { select: "all" }), [
+      "Testland",
+    ]);
   });
-  describe("getSimpleAlpha2Code", function () {
-    it("works", function () {
-      assert.strictEqual(i18niso.getSimpleAlpha2Code("belgie", "nl"), "BE");
-      assert.strictEqual(i18niso.getSimpleAlpha2Code("België", "nl"), "BE");
-      assert.strictEqual(
-        i18niso.getSimpleAlpha2Code("Republic of Korea", "en"),
-        "KR"
-      );
-      assert.strictEqual(
-        i18niso.getSimpleAlpha2Code("South Korea", "en"),
-        "KR"
-      );
+
+  it("accepts territories and keeps selection behavior", () => {
+    countries.registerLocale({
+      locale: "en-x-select",
+      territories: { ZZ: ["Official Testland", "Testland"] },
     });
-    it("missing name", function () {
-      assert.strictEqual(i18niso.getSimpleAlpha2Code("XXX", "de"), undefined);
+    assert.equal(countries.getName("ZZ", "en-x-select"), "Official Testland");
+    assert.equal(
+      countries.getName("ZZ", "en-x-select", { select: "alias" }),
+      "Testland"
+    );
+    assert.deepEqual(
+      countries.getName("ZZ", "en-x-select", { select: "all" }),
+      ["Official Testland", "Testland"]
+    );
+    assert.deepEqual(countries.getNames("en-x-select", { select: "all" }), {
+      ZZ: ["Official Testland", "Testland"],
     });
-    it("missing lang", function () {
-      assert.strictEqual(
-        i18niso.getSimpleAlpha2Code("Deutschland", "xx"),
-        undefined
-      );
-    });
-    it("alternative name spellings", function () {
-      assert.strictEqual(
-        i18niso.getSimpleAlpha2Code("Estados Unidos da América", "pt"),
-        "US"
-      );
-    });
+    assert.equal(countries.getTerritoryCode("Testland", "en-x-select"), "ZZ");
+    assert.throws(
+      () =>
+        countries.getName("ZZ", "en-x-select", { select: "invalid" } as never),
+      /LocaleNameType/
+    );
   });
-  describe("getAlpha3Code", function () {
-    it("missing name", function () {
-      assert.strictEqual(i18niso.getAlpha3Code("XXX", "de"), undefined);
-    });
-    it("missing lang", function () {
-      assert.strictEqual(i18niso.getAlpha3Code("Deutschland", "xx"), undefined);
-    });
+
+  it("rejects conflicting, missing and invalid registrations", () => {
+    assert.throws(
+      () =>
+        countries.registerLocale({
+          locale: "en",
+          countries: {},
+          territories: {},
+        }),
+      /either territories or countries/
+    );
+    assert.throws(
+      () => countries.registerLocale({ locale: "" }),
+      /Missing localeData.locale/
+    );
+    assert.throws(
+      () => countries.registerLocale({ locale: "en-x-empty" }),
+      /Missing localeData.territories/
+    );
+    assert.throws(
+      () => countries.registerLocale({ locale: "invalid_@", territories: {} }),
+      /Invalid BCP 47 locale/
+    );
   });
-  describe("getSimpleAlpha3Code", function () {
-    it("works", function () {
-      assert.strictEqual(i18niso.getSimpleAlpha3Code("belgie", "nl"), "BEL");
-      assert.strictEqual(i18niso.getSimpleAlpha3Code("België", "nl"), "BEL");
-    });
-    it("missing name", function () {
-      assert.strictEqual(i18niso.getSimpleAlpha3Code("XXX", "de"), undefined);
-    });
-    it("missing lang", function () {
-      assert.strictEqual(
-        i18niso.getSimpleAlpha3Code("Deutschland", "xx"),
-        undefined
-      );
-    });
-    it("alternative name spellings", function () {
-      assert.strictEqual(
-        i18niso.getSimpleAlpha3Code("Estados Unidos da América", "pt"),
-        "USA"
-      );
-    });
+
+  it("supports diacritic-insensitive reverse lookup and ignores inherited entries", () => {
+    const territories = Object.create({ AA: "Inherited" }) as Record<
+      string,
+      string
+    >;
+    territories.BE = "België";
+    countries.registerLocale({ locale: "nl-x-test", territories });
+    assert.equal(
+      countries.getTerritoryCode("Inherited", "nl-x-test"),
+      undefined
+    );
+    assert.equal(countries.getSimpleTerritoryCode("belgie", "nl-x-test"), "BE");
+    assert.equal(countries.getSimpleAlpha2Code("belgie", "nl-x-test"), "BE");
+    assert.equal(countries.getSimpleAlpha3Code("belgie", "nl-x-test"), "BEL");
   });
-  describe("isValid", function () {
-    it("isValid true => false", function () {
-      assert.strictEqual(i18niso.isValid(true), false);
+
+  it("prefers exact registrations and exposes registered locales", () => {
+    countries.registerLocale({
+      locale: "en-AU",
+      territories: { AU: "Australia custom" },
     });
-    it("isValid XX => false", function () {
-      assert.strictEqual(i18niso.isValid("XX"), false);
-    });
-    it("isValid SG => true", function () {
-      assert.strictEqual(i18niso.isValid("SG"), true);
-    });
-    it("isValid SGP => true", function () {
-      assert.strictEqual(i18niso.isValid("SGP"), true);
-    });
-    it("isValid 702 => true", function () {
-      assert.strictEqual(i18niso.isValid(702), true);
-    });
-    it("isValid 999 => false", function () {
-      assert.strictEqual(i18niso.isValid(999), false);
-    });
-    it("isValid ... => false", function () {
-      assert.strictEqual(i18niso.isValid("..."), false);
-    });
-    it("isValid is case insensitive", function () {
-      assert.strictEqual(i18niso.isValid("fra"), true);
-      assert.strictEqual(i18niso.isValid("fr"), true);
-    });
-    it("isValid works with undefined or null", function () {
-      assert.strictEqual(i18niso.isValid(undefined), false);
-      assert.strictEqual(i18niso.isValid(null), false);
-    });
-  });
-  describe("completeness", function () {
-    i18niso.langs().forEach(function (lang) {
-      describe(lang + " completeness", function () {
-        it("complete (to less)", function () {
-          Object.keys(i18niso.getAlpha2Codes()).forEach(function (code) {
-            assert.notStrictEqual(
-              i18niso.getName(code, lang),
-              undefined,
-              "missing entry for " + code
-            );
-          });
-        });
-        it("complete (too much)", function () {
-          Object.keys(i18niso.getNames(lang)).forEach(function (code) {
-            assert.notStrictEqual(
-              i18niso.getAlpha2Codes()[code],
-              void 0,
-              "entry for " + code + " in lang " + lang + " is too much"
-            );
-          });
-        });
-      });
-    });
-  });
-  describe("langs", function () {
-    describe("de", function () {
-      var lang = "de";
-      describe("get name", function () {
-        it("for de", function () {
-          assert.strictEqual(i18niso.getName("de", lang), "Deutschland");
-        });
-        it("for cl", function () {
-          assert.strictEqual(i18niso.getName("cl", lang), "Chile");
-        });
-        it("for CL", function () {
-          assert.strictEqual(i18niso.getName("CL", lang), "Chile");
-        });
-        it("for cy", function () {
-          assert.strictEqual(i18niso.getName("cy", lang), "Zypern");
-        });
-        it("for af", function () {
-          assert.strictEqual(i18niso.getName("af", lang), "Afghanistan");
-        });
-      });
-    });
-    describe("en", function () {
-      var lang = "en";
-      describe("get Alpha-2 code", function () {
-        it("nameToAlpha2 United States of America => US", function () {
-          assert.strictEqual(
-            i18niso.getAlpha2Code("United States of America", lang),
-            "US"
-          );
-        });
-        it("nameToAlpha2 United States => US", function () {
-          assert.strictEqual(
-            i18niso.getAlpha2Code("United States", lang),
-            "US"
-          );
-        });
-        it("nameToAlpha2 Brazil => BR", function () {
-          assert.strictEqual(i18niso.getAlpha2Code("Brazil", lang), "BR");
-        });
-      });
-      describe("get Alpha-3 code", function () {
-        it("nameToAlpha3 United States of America => USA", function () {
-          assert.strictEqual(
-            i18niso.getAlpha3Code("United States of America", lang),
-            "USA"
-          );
-        });
-        it("nameToAlpha3 Brazil => BRA", function () {
-          assert.strictEqual(i18niso.getAlpha3Code("Brazil", lang), "BRA");
-        });
-      });
-      describe("get name", function () {
-        it("for de", function () {
-          assert.strictEqual(i18niso.getName("de", lang), "Germany");
-        });
-        it("for cl", function () {
-          assert.strictEqual(i18niso.getName("cl", lang), "Chile");
-        });
-        it("for CL", function () {
-          assert.strictEqual(i18niso.getName("CL", lang), "Chile");
-        });
-        it("for cy", function () {
-          assert.strictEqual(i18niso.getName("cy", lang), "Cyprus");
-        });
-        it("for af", function () {
-          assert.strictEqual(i18niso.getName("af", lang), "Afghanistan");
-        });
-      });
-    });
-    describe("id", function () {
-      var lang = "id";
-      describe("get Alpha-2 code", function () {
-        it("nameToAlpha2 Samoa Amerika => AS", function () {
-          assert.strictEqual(
-            i18niso.getAlpha2Code("Samoa Amerika", lang),
-            "AS"
-          );
-        });
-        it("nameToAlpha2 Brasil => BR", function () {
-          assert.strictEqual(i18niso.getAlpha2Code("Brasil", lang), "BR");
-        });
-      });
-      describe("get Alpha-3 code", function () {
-        it("nameToAlpha3 Samoa Amerika => ASM", function () {
-          assert.strictEqual(
-            i18niso.getAlpha3Code("Samoa Amerika", lang),
-            "ASM"
-          );
-        });
-        it("nameToAlpha3 Brasil => BRA", function () {
-          assert.strictEqual(i18niso.getAlpha3Code("Brasil", lang), "BRA");
-        });
-      });
-      describe("get name", function () {
-        it("for de", function () {
-          assert.strictEqual(i18niso.getName("de", lang), "Jerman");
-        });
-        it("for cl", function () {
-          assert.strictEqual(i18niso.getName("cl", lang), "Chile");
-        });
-        it("for CL", function () {
-          assert.strictEqual(i18niso.getName("CL", lang), "Chile");
-        });
-        it("for cy", function () {
-          assert.strictEqual(i18niso.getName("cy", lang), "Siprus");
-        });
-        it("for af", function () {
-          assert.strictEqual(i18niso.getName("af", lang), "Afghanistan");
-        });
-      });
-    });
-    describe("pl", function () {
-      var lang = "pl";
-      describe("get Alpha-2 code", function () {
-        it("nameToAlpha2 Brazylia => BR", function () {
-          assert.strictEqual(i18niso.getAlpha2Code("Brazylia", lang), "BR");
-        });
-        it("nameToAlpha2 Stany Zjednoczone => US", function () {
-          assert.strictEqual(
-            i18niso.getAlpha2Code("Stany Zjednoczone", lang),
-            "US"
-          );
-        });
-      });
-      describe("get Alpha-3 code", function () {
-        it("nameToAlpha3 Brazylia => BRA", function () {
-          assert.strictEqual(i18niso.getAlpha3Code("Brazylia", lang), "BRA");
-        });
-        it("nameToAlpha3 Stany Zjednoczone => USA", function () {
-          assert.strictEqual(
-            i18niso.getAlpha3Code("Stany Zjednoczone", lang),
-            "USA"
-          );
-        });
-      });
-      describe("get name", function () {
-        it("for af => Afganistan", function () {
-          assert.strictEqual(i18niso.getName("af", lang), "Afganistan");
-        });
-        it("for ba => Bośnia i Hercegowina", function () {
-          assert.strictEqual(
-            i18niso.getName("ba", lang),
-            "Bośnia i Hercegowina"
-          );
-        });
-        it("for cn => Chiny", function () {
-          assert.strictEqual(i18niso.getName("cn", lang), "Chiny");
-        });
-        it("for cy => Cypr", function () {
-          assert.strictEqual(i18niso.getName("cy", lang), "Cypr");
-        });
-        it("for de => Niemcy", function () {
-          assert.strictEqual(i18niso.getName("de", lang), "Niemcy");
-        });
-      });
-    });
-    describe("el", function () {
-      var lang = "el";
-      describe("get Alpha-2 code", function () {
-        it("nameToAlpha2 'Βραζιλία' => BR", function () {
-          assert.strictEqual(i18niso.getAlpha2Code("Βραζιλία", lang), "BR");
-        });
-        it("nameToAlpha2 'Ηνωμένες Πολιτείες Αμερικής' => US", function () {
-          assert.strictEqual(
-            i18niso.getAlpha2Code("Ηνωμένες Πολιτείες Αμερικής", lang),
-            "US"
-          );
-        });
-      });
-      describe("get Alpha-3 code", function () {
-        it("nameToAlpha3 'Βραζιλία' => BRA", function () {
-          assert.strictEqual(i18niso.getAlpha3Code("Βραζιλία", lang), "BRA");
-        });
-        it("nameToAlpha3 'Ηνωμένες Πολιτείες Αμερικής' => USA", function () {
-          assert.strictEqual(
-            i18niso.getAlpha3Code("Ηνωμένες Πολιτείες Αμερικής", lang),
-            "USA"
-          );
-        });
-      });
-      describe("get name", function () {
-        it("for af => Αφγανιστάν", function () {
-          assert.strictEqual(i18niso.getName("af", lang), "Αφγανιστάν");
-        });
-        it("for ba => Βοσνία και Ερζεγοβίνη", function () {
-          assert.strictEqual(
-            i18niso.getName("ba", lang),
-            "Βοσνία και Ερζεγοβίνη"
-          );
-        });
-        it("for cn => Κίνα", function () {
-          assert.strictEqual(i18niso.getName("cn", lang), "Κίνα");
-        });
-        it("for cy => Κύπρος", function () {
-          assert.strictEqual(i18niso.getName("cy", lang), "Κύπρος");
-        });
-        it("for de => Γερμανία", function () {
-          assert.strictEqual(i18niso.getName("de", lang), "Γερμανία");
-        });
-      });
-    });
-    describe("fr", function () {
-      var lang = "fr";
-      describe("get name", function () {
-        it("for fr => France", function () {
-          assert.strictEqual(i18niso.getName("fr", lang), "France");
-        });
-      });
-    });
-    describe("pt", function () {
-      var lang = "pt";
-      describe("get Alpha-2 code", function () {
-        it("nameToAlpha2 Estados Unidos => US", function () {
-          assert.strictEqual(
-            i18niso.getAlpha2Code("Estados Unidos", lang),
-            "US"
-          );
-        });
-        it("nameToAlpha2 Estados Unidos da América => US", function () {
-          assert.strictEqual(
-            i18niso.getAlpha2Code("Estados Unidos da América", lang),
-            "US"
-          );
-        });
-      });
-      describe("get Alpha-3 code", function () {
-        it("nameToAlpha3 Estados Unidos => USA", function () {
-          assert.strictEqual(
-            i18niso.getAlpha3Code("Estados Unidos", lang),
-            "USA"
-          );
-        });
-        it("nameToAlpha3 Estados Unidos da América => USA", function () {
-          assert.strictEqual(
-            i18niso.getAlpha3Code("Estados Unidos da América", lang),
-            "USA"
-          );
-        });
-      });
-      describe("get name", function () {
-        it("for br => Brasil", function () {
-          assert.strictEqual(i18niso.getName("br", lang), "Brasil");
-        });
-        it("for si => Eslovénia", function () {
-          assert.strictEqual(i18niso.getName("si", lang), "Eslovénia");
-        });
-        it("for us => Estados Unidos", function () {
-          assert.strictEqual(i18niso.getName("us", lang), "Estados Unidos");
-        });
-      });
-    });
-    describe("vi", function () {
-      var lang = "vi";
-      describe("get name", function () {
-        it("for eg => Ai Cập", function () {
-          assert.strictEqual(i18niso.getName("eg", lang), "Ai Cập");
-        });
-        it("for eg (official name) => Ai Cập", function () {
-          assert.strictEqual(
-            i18niso.getName("eg", lang, {
-              select: "official",
-            }),
-            "Ai Cập"
-          );
-        });
-        it("for ru (alias) => Nga", function () {
-          assert.strictEqual(
-            i18niso.getName("ru", lang, {
-              select: "alias",
-            }),
-            "Nga"
-          );
-        });
-        it('for us (all available names) => ["Hợp chủng quốc Hoa Kỳ", "Mỹ"]', function () {
-          assert.deepStrictEqual(
-            i18niso.getName("us", lang, {
-              select: "all",
-            }),
-            ["Hợp chủng quốc Hoa Kỳ", "Mỹ"]
-          );
-        });
-      });
-    });
-    describe("mr", function () {
-      var lang = "mr";
-      describe("get Alpha-2 code", function () {
-        it("nameToAlpha2 अमेरिका => US", function () {
-          assert.strictEqual(i18niso.getAlpha2Code("अमेरिका", lang), "US");
-        });
-        it("nameToAlpha2 Brazil => BR", function () {
-          assert.strictEqual(i18niso.getAlpha2Code("ब्राझील", lang), "BR");
-        });
-      });
-      describe("get Alpha-3 code", function () {
-        it("nameToAlpha3 अमेरिका => USA", function () {
-          assert.strictEqual(i18niso.getAlpha3Code("अमेरिका", lang), "USA");
-        });
-        it("nameToAlpha3 ब्राझील => BRA", function () {
-          assert.strictEqual(i18niso.getAlpha3Code("ब्राझील", lang), "BRA");
-        });
-      });
-      describe("get name", function () {
-        it("for de", function () {
-          assert.strictEqual(i18niso.getName("de", lang), "जर्मनी");
-        });
-        it("for in", function () {
-          assert.strictEqual(i18niso.getName("in", lang), "भारत");
-        });
-      });
-    });
-    describe("mt", function () {
-      var lang = "mt";
-      describe("get Alpha-2 code", function () {
-        it("nameToAlpha2 l-Istati Uniti => US", function () {
-          assert.strictEqual(
-            i18niso.getAlpha2Code("l-Istati Uniti", lang),
-            "US"
-          );
-        });
-        it("nameToAlpha2 l-Istati Uniti tal-Amerka => US", function () {
-          assert.strictEqual(
-            i18niso.getAlpha2Code("l-Istati Uniti tal-Amerka", lang),
-            "US"
-          );
-        });
-      });
-      describe("get Alpha-3 code", function () {
-        it("nameToAlpha3 l-Istati Uniti => USA", function () {
-          assert.strictEqual(
-            i18niso.getAlpha3Code("l-Istati Uniti", lang),
-            "USA"
-          );
-        });
-        it("nameToAlpha3 l-Istati Uniti tal-Amerka => USA", function () {
-          assert.strictEqual(
-            i18niso.getAlpha3Code("l-Istati Uniti tal-Amerka", lang),
-            "USA"
-          );
-        });
-      });
-      describe("get name", function () {
-        it("for br => Il-Brażil", function () {
-          assert.strictEqual(i18niso.getName("br", lang), "Il-Brażil");
-        });
-        it("for si => is-Slovenja", function () {
-          assert.strictEqual(i18niso.getName("si", lang), "is-Slovenja");
-        });
-        it("for us => l-Istati Uniti", function () {
-          assert.strictEqual(i18niso.getName("us", lang), "l-Istati Uniti");
-        });
-      });
-    });
-    describe("unsupported language", function () {
-      var lang = "unsupported";
-      it("get name => undefined", function () {
-        assert.strictEqual(i18niso.getName("de", lang), undefined);
-      });
-      it("get names => array.length == 0", function () {
-        assert.strictEqual(Object.keys(i18niso.getNames(lang)).length, 0);
-      });
-    });
+    assert.equal(countries.getName("AU", "en-AU"), "Australia custom");
+    assert.ok(countries.langs().includes("en-AU"));
+    assert.equal(countries.getName(" US ", "en"), "United States");
   });
 });

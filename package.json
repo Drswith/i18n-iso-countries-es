@@ -1,7 +1,7 @@
 {
   "name": "i18n-iso-countries-es",
-  "version": "1.0.1",
-  "description": "i18n for ISO 3166-1 country codes",
+  "version": "2.0.0",
+  "description": "CLDR locale and territory display names",
   "types": "dist/index.d.cts",
   "keywords": [
     "i18n",
@@ -138,14 +138,17 @@
   },
   "devDependencies": {
     "@types/node": "24.0.15",
+    "@vitest/coverage-v8": "4.1.10",
     "oxfmt": "0.61.0",
     "oxlint": "1.76.0",
     "tsdown": "0.22.14",
     "bumpp": "^11.0.1",
+    "cldr-core": "48.2.0",
+    "cldr-localenames-full": "48.2.0",
     "typescript": "5.9.3",
     "vitest": "4.1.10"
   },
-  "main": "./dist/entry-node.cjs",
+  "main": "./dist/index.cjs",
   "module": "./dist/index.mjs",
   "browser": "./dist/index.mjs",
   "unpkg": "./dist/browser.iife.js",
@@ -168,8 +171,8 @@
         "default": "./dist/index.mjs"
       },
       "require": {
-        "types": "./dist/entry-node.d.cts",
-        "default": "./dist/entry-node.cjs"
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
       },
       "default": "./dist/index.mjs"
     },
@@ -180,9 +183,10 @@
     },
     "./browser.iife.js": "./dist/browser.iife.js",
     "./browser.umd.js": "./dist/browser.umd.js",
-    "./langs/*.json": "./langs/*.json",
+    "./locales/*.json": "./locales/*.json",
     "./codes.json": "./codes.json",
-    "./supportedLocales.json": "./supportedLocales.json",
+    "./locales.json": "./locales.json",
+    "./territoryAliases.json": "./territoryAliases.json",
     "./package.json": "./package.json"
   },
   "engines": {
@@ -191,10 +195,12 @@
   "packageManager": "pnpm@11.15.1",
   "files": [
     "dist",
-    "langs",
+    "locales",
     "codes.json",
-    "supportedLocales.json",
+    "locales.json",
+    "territoryAliases.json",
     "LICENSE",
+    "LICENSE-CLDR",
     "README.md"
   ],
   "scripts": {
@@ -203,8 +209,12 @@
     "format": "oxfmt src test scripts tsdown.config.mts vitest.config.ts",
     "format:check": "oxfmt --check src test scripts tsdown.config.mts vitest.config.ts",
     "lint": "oxlint src test scripts tsdown.config.mts vitest.config.ts",
+    "cldr:generate": "node scripts/generate-cldr.mjs",
+    "cldr:update": "node scripts/generate-cldr.mjs --version",
+    "cldr:check": "node scripts/generate-cldr.mjs --check",
     "prepare": "pnpm run build",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "release": "bumpp",
@@ -214,6 +224,6 @@
     "release:major": "bumpp --release major",
     "upstream:set": "node scripts/update-upstream.mjs",
     "prepublishOnly": "pnpm run build",
-    "check": "pnpm run format:check && pnpm run lint && pnpm run typecheck && pnpm run test && pnpm run build"
+    "check": "pnpm run cldr:check && pnpm run format:check && pnpm run lint && pnpm run typecheck && pnpm run test:coverage && pnpm run build"
   }
 }
