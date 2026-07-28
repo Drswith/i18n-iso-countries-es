@@ -196,14 +196,19 @@
   "scripts": {
     "build": "tsdown",
     "dev": "tsdown --watch",
-    "format": "oxfmt src test tsdown.config.mts vitest.config.ts",
-    "format:check": "oxfmt --check src test tsdown.config.mts vitest.config.ts",
-    "lint": "oxlint src test tsdown.config.mts vitest.config.ts",
+    "format": "oxfmt src test scripts tsdown.config.mts vitest.config.ts",
+    "format:check": "oxfmt --check src test scripts tsdown.config.mts vitest.config.ts",
+    "lint": "oxlint src test scripts tsdown.config.mts vitest.config.ts",
     "prepare": "pnpm run build",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "release": "bumpp",
+    "release:initial": "bumpp --release 1.0.0",
+    "release:patch": "bumpp --release patch",
+    "release:minor": "bumpp --release minor",
+    "release:major": "bumpp --release major",
+    "upstream:set": "node scripts/update-upstream.mjs",
     "prepublishOnly": "pnpm run build",
     "check": "pnpm run format:check && pnpm run lint && pnpm run typecheck && pnpm run test && pnpm run build"
   }

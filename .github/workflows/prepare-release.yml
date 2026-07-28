@@ -1,0 +1,64 @@
+name: Prepare Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      release:
+        description: "Release type (patch, minor, major) or exact version (for example 1.0.0)"
+        required: true
+        default: patch
+        type: string
+      upstream_version:
+        description: "Upstream baseline version, when this release includes an upstream sync"
+        required: false
+        type: string
+      upstream_commit:
+        description: "Upstream baseline commit, when this release includes an upstream sync"
+        required: false
+        type: string
+
+permissions:
+  actions: write
+  contents: write
+
+jobs:
+  prepare:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: main
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.15.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Update upstream baseline
+        env:
+          UPSTREAM_VERSION: ${{ inputs.upstream_version }}
+          UPSTREAM_COMMIT: ${{ inputs.upstream_commit }}
+        run: |
+          if [[ -n "$UPSTREAM_VERSION" || -n "$UPSTREAM_COMMIT" ]]; then
+            pnpm run upstream:set -- "$UPSTREAM_VERSION" "$UPSTREAM_COMMIT"
+          fi
+      - name: Check
+        run: pnpm run check
+      - name: Bump version, commit, tag, and push
+        env:
+          RELEASE: ${{ inputs.release }}
+        run: pnpm exec bumpp --all --release "$RELEASE" --yes --push
+      - name: Trigger package publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="$(git describe --tags --exact-match HEAD)"
+          gh workflow run release.yml --repo "$GITHUB_REPOSITORY" --ref "$tag"
