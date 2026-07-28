@@ -1,5 +1,6 @@
-var assert = require("assert");
-var i18niso = require("../");
+import assert from "node:assert/strict";
+import { describe, it } from "vitest";
+import * as i18niso from "../src/entry-node";
 
 describe("i18n for iso 3166-1", function () {
   "use strict";

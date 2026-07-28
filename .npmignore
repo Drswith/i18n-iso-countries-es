@@ -1,5 +1,11 @@
 .github/
+src/
 test/
-.eslintrc
-.jshintignore
-.prettierrc
+*.config.ts
+tsdown.config.mts
+.nvmrc
+.oxfmtrc.json
+.oxlintrc.json
+pnpm-lock.yaml
+pnpm-workspace.yaml
+tsconfig.json

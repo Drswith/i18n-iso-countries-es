@@ -4,21 +4,70 @@ defaults:
   run:
     shell: bash
 jobs:
-  build:
+  toolchain:
+    runs-on: ubuntu-latest
+    name: Node 24 toolchain CI
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.15.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Check
+        run: pnpm run check
+      - name: Upload runtime package
+        uses: actions/upload-artifact@v4
+        with:
+          name: runtime-package
+          path: |
+            dist
+            langs
+            codes.json
+            supportedLocales.json
+            package.json
+
+  runtime:
+    needs: toolchain
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node: ['18', '20']
-    name: Node ${{ matrix.node }} CI
+        node: ['12', '20', '24']
+    name: Node ${{ matrix.node }} runtime compatibility
     steps:
       - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            package.json
+      - uses: actions/download-artifact@v4
+        with:
+          name: runtime-package
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
-          cache: npm
-      - name: dependencies
-        run: npm ci
-      - name: lint
-        run: npm run lint
-      - name: test
-        run: npm test
+      - name: Install production dependency
+        run: npm install --production --ignore-scripts
+      - name: Smoke test compiled package
+        run: node -e "const countries = require('./dist/entry-node.cjs'); if (countries.getName('ES', 'es') !== 'España') process.exit(1); if (!countries.isValid('ESP')) process.exit(1)"
+
+  bun:
+    needs: toolchain
+    runs-on: ubuntu-latest
+    name: Bun CJS and ESM compatibility
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            package.json
+      - uses: actions/download-artifact@v4
+        with:
+          name: runtime-package
+      - uses: oven-sh/setup-bun@v2
+      - name: Smoke test Bun package exports
+        run: |
+          bun -e "const countries = require('.'); if (countries.getName('ES', 'es') !== 'España') process.exit(1)"
+          bun -e "import * as countries from 'i18n-iso-countries-es'; countries.registerLocale({ locale: 'es', countries: { ES: 'España' } }); if (countries.getName('ES', 'es') !== 'España') process.exit(1)"

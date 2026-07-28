@@ -1,0 +1,10 @@
+{
+  "$schema": "https://oxc.rs/schema/oxlint.json",
+  "env": {
+    "node": true,
+    "es2022": true
+  },
+  "rules": {
+    "no-unused-vars": "error"
+  }
+}
