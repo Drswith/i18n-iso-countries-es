@@ -1,6 +1,6 @@
 {
   "name": "i18n-iso-countries-es",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Frozen v1 ISO 3166-1 country names; use i18n-cldr-territories",
   "types": "dist/index.d.cts",
   "keywords": [
