@@ -4,18 +4,19 @@ on:
   workflow_dispatch:
     inputs:
       release:
-        description: "Release type (patch, minor, major) or exact version (for example 1.0.0)"
+        description: "Release type"
         required: true
         default: patch
-        type: string
-      upstream_version:
-        description: "Upstream baseline version, when this release includes an upstream sync"
-        required: false
-        type: string
-      upstream_commit:
-        description: "Upstream baseline commit, when this release includes an upstream sync"
-        required: false
-        type: string
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+      sync_upstream:
+        description: "Record the current upstream master as the release baseline"
+        required: true
+        default: false
+        type: boolean
 
 permissions:
   actions: write
@@ -29,7 +30,7 @@ jobs:
       run:
         shell: bash
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
           ref: main
@@ -44,12 +45,24 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Update upstream baseline
         env:
-          UPSTREAM_VERSION: ${{ inputs.upstream_version }}
-          UPSTREAM_COMMIT: ${{ inputs.upstream_commit }}
+          GH_TOKEN: ${{ github.token }}
+          SYNC_UPSTREAM: ${{ inputs.sync_upstream }}
         run: |
-          if [[ -n "$UPSTREAM_VERSION" || -n "$UPSTREAM_COMMIT" ]]; then
-            pnpm run upstream:set -- "$UPSTREAM_VERSION" "$UPSTREAM_COMMIT"
+          if [[ "$SYNC_UPSTREAM" != "true" ]]; then
+            exit 0
           fi
+
+          upstream_repository="michaelwittig/node-i18n-iso-countries"
+          upstream_branch="master"
+          upstream_commit="$(gh api "repos/$upstream_repository/git/ref/heads/$upstream_branch" --jq .object.sha)"
+          upstream_version="$(
+            gh api "repos/$upstream_repository/contents/package.json?ref=$upstream_branch" --jq .content |
+              tr -d '\n' |
+              base64 --decode |
+              jq -r .version
+          )"
+
+          pnpm run upstream:set -- "$upstream_version" "$upstream_commit"
       - name: Check
         run: pnpm run check
       - name: Configure release identity

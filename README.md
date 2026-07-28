@@ -28,8 +28,7 @@ prepared from the `main` branch with GitHub Actions:
 ```bash
 gh workflow run prepare-release.yml --ref main \\
   -f release=minor \\
-  -f upstream_version=7.15.0 \\
-  -f upstream_commit="$(git rev-parse master)"
+  -f sync_upstream=true
 ```
 
 ## Installing
