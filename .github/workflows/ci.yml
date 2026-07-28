@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
     name: Node 24 toolchain CI
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v4
         with:
           version: 11.15.1
@@ -40,7 +40,7 @@ jobs:
         node: ['12', '20', '24']
     name: Node ${{ matrix.node }} runtime compatibility
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           sparse-checkout: |
             package.json
@@ -58,7 +58,7 @@ jobs:
     runs-on: ubuntu-latest
     name: Bun CJS and ESM compatibility
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           sparse-checkout: |
             package.json
