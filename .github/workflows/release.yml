@@ -1,10 +1,9 @@
 name: Release
 
-on:
-  push:
-    tags:
-      - "v*"
-  workflow_dispatch:
+on: workflow_dispatch
+
+# v1 is frozen. Publish the final 1.0.2 package manually; do not publish
+# legacy tags automatically after the repository becomes i18n-cldr-territories.
 
 jobs:
   release:
