@@ -26,9 +26,10 @@ jobs:
           name: runtime-package
           path: |
             dist
-            langs
+            locales
             codes.json
-            supportedLocales.json
+            locales.json
+            territoryAliases.json
             package.json
 
   runtime:
@@ -51,7 +52,7 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
       - name: Smoke test compiled package
-        run: node -e "const countries = require('./dist/entry-node.cjs'); if (countries.getName('ES', 'es') !== 'España') process.exit(1); if (!countries.isValid('ESP')) process.exit(1)"
+        run: node -e "const countries = require('./dist/index.cjs'); countries.registerLocale(require('./locales/es.json')); if (countries.getName('ES', 'es') !== 'España') process.exit(1); if (!countries.isValid('ESP')) process.exit(1)"
 
   bun:
     needs: toolchain
@@ -68,5 +69,5 @@ jobs:
       - uses: oven-sh/setup-bun@v2
       - name: Smoke test Bun package exports
         run: |
-          bun -e "const countries = require('.'); if (countries.getName('ES', 'es') !== 'España') process.exit(1)"
+          bun -e "const countries = require('.'); countries.registerLocale(require('./locales/es.json')); if (countries.getName('ES', 'es') !== 'España') process.exit(1)"
           bun -e "import * as countries from 'i18n-iso-countries-es'; countries.registerLocale({ locale: 'es', countries: { ES: 'España' } }); if (countries.getName('ES', 'es') !== 'España') process.exit(1)"
