@@ -128,7 +128,7 @@
   "homepage": "https://github.com/Drswith/i18n-cldr-territories#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Drswith/i18n-cldr-territories.git"
+    "url": "git+https://github.com/Drswith/i18n-iso-countries-es.git"
   },
   "bugs": {
     "url": "https://github.com/Drswith/i18n-cldr-territories/issues"
