@@ -10,7 +10,7 @@ export default defineConfig([
     clean: true,
     deps: bundledRuntime,
     dts: true,
-    entry: ["src/index.ts", "src/entry-node.ts"],
+    entry: ["src/index.ts"],
     format: "cjs",
     outDir: "dist",
     platform: "node",

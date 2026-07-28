@@ -1,319 +1,109 @@
 # i18n-iso-countries-es
 
-[![CI](https://github.com/Drswith/i18n-iso-countries-es/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Drswith/i18n-iso-countries-es/actions/workflows/ci.yml)
-[![npm version](https://img.shields.io/npm/v/i18n-iso-countries-es)](https://www.npmjs.com/package/i18n-iso-countries-es)
-[![npm downloads](https://img.shields.io/npm/dm/i18n-iso-countries-es)](https://www.npmjs.com/package/i18n-iso-countries-es)
-[![License](https://img.shields.io/npm/l/i18n-iso-countries-es)](https://github.com/Drswith/i18n-iso-countries-es/blob/main/LICENSE)
-[![Node.js](https://img.shields.io/node/v/i18n-iso-countries-es)](https://github.com/Drswith/i18n-iso-countries-es/blob/main/package.json)
+CLDR-powered locale and territory display names for ISO 3166-1 country codes,
+CLDR territories, and BCP 47 locales.
 
-i18n for ISO 3166-1 country codes. We support Alpha-2, Alpha-3 and Numeric codes from ['Wikipedia: Officially assigned code elements'][iso:3166-1]
-
-This repository is the `Drswith/i18n-iso-countries-es` fork of
+This is a v2 rewrite of the `Drswith/i18n-iso-countries-es` fork of
 [`michaelwittig/node-i18n-iso-countries`](https://github.com/michaelwittig/node-i18n-iso-countries).
+It uses Unicode CLDR 48.2 data and is released under this package's MIT license
+plus the [Unicode-3.0 data license](LICENSE-CLDR).
 
-## Versioning and releases
+## Install
 
-This fork uses its own version line. The current upstream baseline is recorded
-in [`upstream.json`](upstream.json), while package releases use independent
-SemVer tags such as `v1.0.0`, `v1.1.0`, and `v1.1.1`.
-
-- An upstream sync normally increments the fork minor version.
-- A fork-only fix increments the patch version.
-- A breaking change increments the major version.
-
-For example, fork `1.1.0` may be based on upstream `7.15.0`, while fork
-`1.1.1` contains a fix on that same upstream baseline. Releases can be
-prepared from the `main` branch with GitHub Actions:
-
-```bash
-gh workflow run prepare-release.yml --ref main \\
-  -f release=minor \\
-  -f sync_upstream=true
+```sh
+pnpm add i18n-iso-countries-es
 ```
 
-## Installing
+## Usage
 
-Install it using pnpm: `pnpm add i18n-iso-countries-es`
+Locale data is intentionally not preloaded. Import only the BCP 47 locale files
+your application needs and register them explicitly.
 
-The package publishes multiple runtime formats:
+```ts
+import * as countries from "i18n-iso-countries-es";
+import en from "i18n-iso-countries-es/locales/en.json" with { type: "json" };
+import zhHans from "i18n-iso-countries-es/locales/zh-Hans.json" with {
+  type: "json",
+};
 
-- CommonJS: `require("i18n-iso-countries-es")` uses the Node entry and
-  pre-registers all locales.
-- ESM: `import * as countries from "i18n-iso-countries-es"` is the portable
-  browser, Edge, Deno, and Bun entry; register only the locales you need.
-- Browser globals: `dist/browser.iife.js` and `dist/browser.umd.js` expose
-  `I18nIsoCountries` for direct `<script>` and CDN usage.
+countries.registerLocale(en);
+countries.registerLocale(zhHans);
 
-```javascript
-var countries = require("i18n-iso-countries-es");
+countries.getName("USA", "en"); // United States
+countries.getName("CN", "zh-Hans"); // 中国
+countries.getName("AC", "en"); // Ascension Island
+countries.getName("419", "zh-Hans"); // 拉丁美洲
 ```
 
-If you use `i18n-iso-countries-es` with Node.js, you are done. If you use the package in a browser environment, you have to register the languages you want to use to minimize the file size.
+With CommonJS, load the same JSON files through `require()` before calling
+`registerLocale()`.
 
-```javascript
-// Support french & english languages.
-countries.registerLocale(require("i18n-iso-countries-es/langs/en.json"));
-countries.registerLocale(require("i18n-iso-countries-es/langs/fr.json"));
+## Locale model
+
+Locale inputs follow [BCP 47](https://www.rfc-editor.org/rfc/rfc5646):
+
+- languages and variants: `en`, `pt-PT`
+- scripts: `zh-Hans`, `zh-Hant`
+- regions: `en-AU`, `zh-Hans-CN`
+
+Case differences and legacy underscore separators are normalized, so
+`ZH_hans_cn` resolves as `zh-Hans-CN`. Lookup first uses an exact registered
+locale, then CLDR parent locales. Script subtags are never silently removed:
+`zh-Hant` will not fall back to simplified `zh` data.
+
+`getSupportedLocales()` lists the importable locale files. The older
+`getSupportedLanguages()` API remains available but is deprecated in favor of
+the BCP 47 locale list.
+
+## Territory model
+
+`getName()` and `getNames()` expose all CLDR territory display names, including
+official ISO 3166-1 entries, territories such as `AC` and `TA`, special entries
+such as `EU` and `UN`, and UN M.49 macroregions such as `001` and `419`.
+
+ISO conversion APIs remain strict:
+
+```ts
+countries.alpha3ToAlpha2("USA"); // US
+countries.numericToAlpha3("840"); // USA
+countries.isValid("AC"); // false: not an officially assigned ISO 3166-1 code
+countries.isValidTerritory("AC"); // true: a CLDR territory identifier
+countries.getTerritoryCode("world", "en"); // 001
 ```
 
-## Code to Country
+`getAlpha2Code()` and `getAlpha3Code()` remain ISO-only. Use
+`getTerritoryCode()` for any CLDR territory identifier.
 
-### Get the name of a country by its ISO 3166-1 Alpha-2, Alpha-3 or Numeric code
+## Migration from v1
 
-```javascript
-var countries = require("i18n-iso-countries-es");
-// in a browser environment: countries.registerLocale(require("i18n-iso-countries-es/langs/en.json"));
-console.log("US (Alpha-2) => " + countries.getName("US", "en")); // United States of America
-console.log("US (Alpha-2) => " + countries.getName("US", "de")); // Vereinigte Staaten von Amerika
-console.log("USA (Alpha-3) => " + countries.getName("USA", "en")); // United States of America
-console.log("USA (Numeric) => " + countries.getName("840", "en")); // United States of America
+v2 is a breaking release:
+
+- Node no longer pre-registers every locale; register imported locale JSON.
+- Locale JSON now has a `territories` object. `registerLocale()` still accepts
+  the former `countries` object for custom locale migration, but the generated
+  locale files only use `territories`.
+- CLDR display names replace the former hand-maintained translations. Exact
+  wording can differ from v1.
+- `langs/*.json` and `supportedLocales.json` are replaced by
+  `locales/*.json` and `getSupportedLocales()`.
+
+## Data updates
+
+The checked-in generated data is pinned to `cldr-localenames-full@48.2.0` and
+`cldr-core@48.2.0`. To update it, first deliberately change both pinned
+versions, install dependencies, then pass the installed version explicitly:
+
+```sh
+pnpm cldr:update -- <cldr-version>
+pnpm check
 ```
 
-#### Get aliases/short name using select
-
-```javascript
-// Some countries have alias/short names defined. `select` is used to control which
-// name will be returned.
-console.log("GB (select: official) => " + countries.getName("GB", "en", {select: "official"})); // United Kingdom
-console.log("GB (select: alias) => " + countries.getName("GB", "en", {select: "alias"})); // UK
-console.log("GB (select: all) => " + countries.getName("GB", "en", {select: "all"})); // ["United Kingdom", "UK", "Great Britain"]
-// Countries without an alias will always return the offical name
-console.log("LT (select: official) => " + countries.getName("LT", "en", {select: "official"})); // Lithuania
-console.log("LT (select: alias) => " + countries.getName("LT", "en", {select: "alias"})); // Lithuania
-console.log("LT (select: all) => " + countries.getName("LT", "en", {select: "all"})); // ["Lithuania"]
-```
-
-### Get all names by their ISO 3166-1 Alpha-2 code
-
-```javascript
-var countries = require("i18n-iso-countries-es");
-// in a browser environment: countries.registerLocale(require("i18n-iso-countries-es/langs/en.json"));
-console.log(countries.getNames("en", {select: "official"})); // { 'AF': 'Afghanistan', 'AL': 'Albania', [...], 'ZM': 'Zambia', 'ZW': 'Zimbabwe' }
-```
-
-### Supported languages (ISO 639-1)
-
-> In case you want to add new language, please refer [ISO 639-1 table][iso:639-1].
-
-- `af`: Afrikaans
-- `am`: Amharic
-- `ar`: Arabic
-- `az`: Azerbaijani
-- `be`: Belorussian
-- `bg`: Bulgarian
-- `bn`: Bengali
-- `br`: Breton
-- `bs`: Bosnian
-- `ca`: Catalan
-- `cs`: Czech
-- `cy`: Cymraeg
-- `da`: Danish
-- `de`: German
-- `dv`: Dhivehi
-- `en`: English
-- `es`: Spanish
-- `et`: Estonian
-- `eu`: Basque
-- `fa`: Persian
-- `fi`: Finnish
-- `fr`: French
-- `ga`: Irish
-- `gl`: Galician
-- `el`: Greek
-- `ha`: Hausa
-- `he`: Hebrew
-- `hi`: Hindi
-- `hr`: Croatian
-- `hu`: Hungarian
-- `hy`: Armenian
-- `is`: Icelandic
-- `it`: Italian
-- `id`: Indonesian
-- `ja`: Japanese
-- `ka`: Georgian
-- `kk`: Kazakh
-- `km`: Khmer
-- `ko`: Korean
-- `ku`: Kurdish
-- `ky`: Kyrgyz
-- `lt`: Lithuanian
-- `lv`: Latvian
-- `mk`: Macedonian
-- `ml`: Malayalam
-- `mn`: Mongolian
-- `mr`: Marathi
-- `ms`: Malay
-- `mt`: Maltese
-- `nb`: Norwegian Bokmål
-- `nl`: Dutch
-- `nn`: Norwegian Nynorsk
-- `no`: Norwegian
-- `pl`: Polish
-- `ps`: Pashto
-- `pt`: Portuguese
-- `ro`: Romanian
-- `ru`: Russian
-- `sd`: Sindhi
-- `sk`: Slovak
-- `sl`: Slovene
-- `so`: Somali
-- `sq`: Albanian
-- `sr`: Serbian
-- `sv`: Swedish
-- `sw`: Swahili
-- `ta`: Tamil
-- `tg`: Tajik
-- `th`: Thai
-- `tk`: Turkmen
-- `tr`: Turkish
-- `tt`: Tatar
-- `ug`: Uyghur
-- `uk`: Ukrainian
-- `ur`: Urdu
-- `uz`: Uzbek
-- `zh`: Chinese
-- `vi`: Vietnamese
-
-[List of ISO 639-1 codes](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes)
-
-### Get all supported languages (ISO 639-1)
-
-```javascript
-var countries = require("i18n-iso-countries-es");
-console.log("List of supported languages => " + countries.getSupportedLanguages());
-// List of supported languages => ["cy", "dv", "sw", "eu", "af", "am", ...]
-```
-
-### Country to Code
-
-```javascript
-var countries = require("i18n-iso-countries-es");
-// in a browser environment: countries.registerLocale(require("i18n-iso-countries-es/langs/en.json"));
-console.log("United States of America => " + countries.getAlpha2Code("United States of America", "en"));
-// United States of America => US
-
-console.log("United States of America => " + countries.getAlpha3Code("United States of America", "en"));
-// United States of America => USA
-```
-
-## Codes
-
-### Convert Alpha-3 to Alpha-2 code
-
-```javascript
-var countries = require("i18n-iso-countries-es");
-// in a browser environment: countries.registerLocale(require("i18n-iso-countries-es/langs/en.json"));
-console.log("USA (Alpha-3) => " + countries.alpha3ToAlpha2("USA") + " (Alpha-2)");
-// USA (Alpha-3) => US (Alpha-2)
-```
-
-### Convert Numeric to Alpha-2 code
-
-```javascript
-var countries = require("i18n-iso-countries-es");
-// in a browser environment: countries.registerLocale(require("i18n-iso-countries-es/langs/en.json"));
-console.log("840 (Numeric) => " + countries.numericToAlpha2("840") + " (Alpha-2)");
-// 840 (Numeric) => US (Alpha-2)
-```
-
-### Convert Alpha-2 to Alpha-3 code
-
-```javascript
-var countries = require("i18n-iso-countries-es");
-// in a browser environment: countries.registerLocale(require("i18n-iso-countries-es/langs/en.json"));
-console.log("DE (Alpha-2) => " + countries.alpha2ToAlpha3("DE") + " (Alpha-3)");
-// DE (Alpha-2) => DEU (Alpha-3)
-```
-
-### Convert Numeric to Alpha-3 code
-
-```javascript
-var countries = require("i18n-iso-countries-es");
-// in a browser environment: countries.registerLocale(require("i18n-iso-countries-es/langs/en.json"));
-console.log("840 (Numeric) => " + countries.numericToAlpha3("840") + " (Alpha-3)");
-// 840 (Numeric) => USA (Alpha-3)
-```
-
-### Convert Alpha-3 to Numeric code
-
-```javascript
-var countries = require("i18n-iso-countries-es");
-// in a browser environment: countries.registerLocale(require("i18n-iso-countries-es/langs/en.json"));
-console.log(countries.alpha3ToNumeric("SWE"));
-// 752
-```
-
-### Convert Alpha-2 to Numeric code
-
-```javascript
-var countries = require("i18n-iso-countries-es");
-// in a browser environment: countries.registerLocale(require("i18n-iso-countries-es/langs/en.json"));
-console.log(countries.alpha2ToNumeric("SE"));
-// 752
-```
-
-### Get all Alpha-2 codes
-
-```javascript
-var countries = require("i18n-iso-countries-es");
-// in a browser environment: countries.registerLocale(require("i18n-iso-countries-es/langs/en.json"));
-console.log(countries.getAlpha2Codes());
-// { 'AF': 'AFG', 'AX': 'ALA', [...], 'ZM': 'ZMB', 'ZW': 'ZWE' }
-```
-
-### Get all Alpha-3 codes
-
-```javascript
-var countries = require("i18n-iso-countries-es");
-// in a browser environment: countries.registerLocale(require("i18n-iso-countries-es/langs/en.json"));
-console.log(countries.getAlpha3Codes());
-// { 'AFG': 'AF', 'ALA': 'AX', [...], 'ZMB': 'ZM', 'ZWE': 'ZW' }
-```
-
-### Get all Numeric codes
-
-```javascript
-var countries = require("i18n-iso-countries-es");
-// in a browser environment: countries.registerLocale(require("i18n-iso-countries-es/langs/en.json"));
-console.log(countries.getNumericCodes());
-// { '004': 'AF', '008': 'AL', [...], '887': 'YE', '894': 'ZM' }
-```
-
-### Validate country code
-
-```javascript
-var countries = require("i18n-iso-countries-es");
-// in a browser environment: countries.registerLocale(require("i18n-iso-countries-es/langs/en.json"));
-console.log(
-  countries.isValid("US"),
-  countries.isValid("USA"),
-  countries.isValid("XX")
-);
-// true, true, false
-```
-
-## Contribution
-
-To add a language:
-
-- add a json file under [langs/](langs)
-- add the language to the list in supportedLocales.json at the top
-- add language to section **Supported languages** in [README.md](#supported-languages-iso-639-1)
-- add language to keywords in [package.json](package.json)
-- run `pnpm run check`
-- open a PR on GitHub
+`pnpm cldr:check` is included in `pnpm check` and fails when the committed
+locale files no longer match the pinned CLDR source.
 
 ## Development
 
-The repository uses Node.js 24.11 or newer for development and pnpm 11.15.1.
-The published package remains compatible with Node.js 12 and newer.
-
 ```sh
 pnpm install
-pnpm run check
+pnpm check
 ```
-
-You can check codes here: https://www.iso.org/obp/ui/#home
-
-[iso:639-1]: https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes
-[iso:3166-1]: http://en.wikipedia.org/wiki/ISO_3166-1#Officially_assigned_code_elements
