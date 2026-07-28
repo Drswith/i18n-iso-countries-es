@@ -1,7 +1,7 @@
 {
   "name": "i18n-iso-countries-es",
-  "version": "1.0.1",
-  "description": "i18n for ISO 3166-1 country codes",
+  "version": "1.0.2",
+  "description": "Frozen v1 ISO 3166-1 country names; use i18n-cldr-territories",
   "types": "dist/index.d.cts",
   "keywords": [
     "i18n",
@@ -125,13 +125,13 @@
     }
   ],
   "license": "MIT",
-  "homepage": "https://github.com/Drswith/i18n-iso-countries-es#readme",
+  "homepage": "https://github.com/Drswith/i18n-cldr-territories#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Drswith/i18n-iso-countries-es.git"
+    "url": "git+https://github.com/Drswith/i18n-cldr-territories.git"
   },
   "bugs": {
-    "url": "https://github.com/Drswith/i18n-iso-countries-es/issues"
+    "url": "https://github.com/Drswith/i18n-cldr-territories/issues"
   },
   "dependencies": {
     "diacritics": "1.3.0"

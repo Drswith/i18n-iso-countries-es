@@ -1,36 +1,36 @@
 # i18n-iso-countries-es
 
-[![CI](https://github.com/Drswith/i18n-iso-countries-es/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Drswith/i18n-iso-countries-es/actions/workflows/ci.yml)
+[![CI](https://github.com/Drswith/i18n-cldr-territories/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Drswith/i18n-cldr-territories/actions/workflows/ci.yml)
 [![npm version](https://img.shields.io/npm/v/i18n-iso-countries-es)](https://www.npmjs.com/package/i18n-iso-countries-es)
 [![npm downloads](https://img.shields.io/npm/dm/i18n-iso-countries-es)](https://www.npmjs.com/package/i18n-iso-countries-es)
-[![License](https://img.shields.io/npm/l/i18n-iso-countries-es)](https://github.com/Drswith/i18n-iso-countries-es/blob/main/LICENSE)
-[![Node.js](https://img.shields.io/node/v/i18n-iso-countries-es)](https://github.com/Drswith/i18n-iso-countries-es/blob/main/package.json)
+[![License](https://img.shields.io/npm/l/i18n-iso-countries-es)](https://github.com/Drswith/i18n-cldr-territories/blob/main/LICENSE)
+[![Node.js](https://img.shields.io/node/v/i18n-iso-countries-es)](https://github.com/Drswith/i18n-cldr-territories/blob/main/package.json)
 
 i18n for ISO 3166-1 country codes. We support Alpha-2, Alpha-3 and Numeric codes from ['Wikipedia: Officially assigned code elements'][iso:3166-1]
 
-This repository is the `Drswith/i18n-iso-countries-es` fork of
-[`michaelwittig/node-i18n-iso-countries`](https://github.com/michaelwittig/node-i18n-iso-countries).
+## Status: frozen after v1.0.2
 
-## Versioning and releases
+`i18n-iso-countries-es` is frozen after `1.0.2`. It will not receive further
+feature, locale, or data updates.
 
-This fork uses its own version line. The current upstream baseline is recorded
-in [`upstream.json`](upstream.json), while package releases use independent
-SemVer tags such as `v1.0.0`, `v1.1.0`, and `v1.1.1`.
+Its successor is
+[`i18n-cldr-territories`](https://www.npmjs.com/package/i18n-cldr-territories),
+maintained at
+[`Drswith/i18n-cldr-territories`](https://github.com/Drswith/i18n-cldr-territories).
+The successor is an independent CLDR-based package; it supports BCP 47 locale
+tags, CLDR territory identifiers such as `AC` and `TA`, script-aware locale
+fallback, and explicit locale registration.
 
-- An upstream sync normally increments the fork minor version.
-- A fork-only fix increments the patch version.
-- A breaking change increments the major version.
+To migrate:
 
-For example, fork `1.1.0` may be based on upstream `7.15.0`, while fork
-`1.1.1` contains a fix on that same upstream baseline. Releases can be
-prepared from the `main` branch with GitHub Actions:
-
-```bash
-gh workflow run prepare-release.yml --ref main \\
-  -f release=minor \\
-  -f upstream_version=7.15.0 \\
-  -f upstream_commit="$(git rev-parse master)"
+```sh
+pnpm remove i18n-iso-countries-es
+pnpm add i18n-cldr-territories
 ```
+
+This v1 package continues to expose only its existing ISO 3166-1 data and
+ISO 639-1 locale model. See the successor README for the complete migration
+guide and its explicit `registerLocale()` usage.
 
 ## Installing
 
